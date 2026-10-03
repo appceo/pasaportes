@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Generador de Pasaportes 7x9 cm - Cita con Dios</title>
+  <!-- Librería para leer archivos Excel / CSV fácilmente -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    /* Estilos para la pantalla de control */
+    @media screen {
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f3f4f6;
+        padding: 20px;
+        margin: 0;
+      }
+      .panel-control {
+        max-width: 600px;
+        margin: 0 auto 30px auto;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      }
+      .form-group {
+        margin-bottom: 15px;
+      }
+      label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      input[type="text"], input[type="file"] {
+        width: 100%;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+      button {
+        background-color: #1e3a8a;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        font-size: 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        width: 100%;
+      }
+      button:hover {
+        background-color: #1d4ed8;
+      }
+      .cards-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        justify-content: center;
+      }
+    }
+
+    /* Estilos para la impresión / PDF (7 cm x 9 cm) */
+    @page {
+      size: 7cm 9cm;
+      margin: 0;
+    }
+
+    @media print {
+      .panel-control {
+        display: none !important;
+      }
+      body {
+        background-color: white;
+        margin: 0;
+        padding: 0;
+      }
+      .cards-preview {
+        display: block;
+      }
+      .passport-card {
+        page-break-after: always;
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+
+    /* Diseño individual del Pasaporte (7x9 cm) */
+    .passport-card {
+      width: 7cm;
+      height: 9cm;
+      box-sizing: border-box;
+      padding: 0.3cm;
+      background: white;
+      border: 1px dashed #cccccc;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 0.8cm;
+    }
+
+    .event-title {
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #1e3a8a;
+      text-transform: uppercase;
+    }
+
+    .seat-badge {
+      background-color: #1e3a8a;
+      color: white;
+      font-size: 10pt;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      min-width: 1.2cm;
+      text-align: center;
+    }
+
+    .photo-box {
+      width: 6.4cm;
+      height: 5.4cm;
+      margin: 0 auto;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background-color: #f8fafc;
+    }
+
+    .photo-box img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .participant-name {
+      text-align: center;
+      font-size: 9.5pt;
+      font-weight: bold;
+      color: #0f172a;
+      text-transform: uppercase;
+      line-height: 1.2;
+      margin-top: 2px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Panel de control interactivo -->
+  <div class="panel-control">
+    <h2>Generador de Pasaportes de Retiro</h2>
+    
+    <div class="form-group">
+      <label for="titleInput">Título del Evento:</label>
+      <input type="text" id="titleInput" value="CITA CON DIOS">
+    </div>
+
+    <div class="form-group">
+      <label for="csvFileInput">Cargar Archivo de Datos (CSV / Excel):</label>
+      <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls">
+    </div>
+
+    <button onclick="procesarDatos()">Generar Pasaportes</button>
+    <button onclick="window.print()" style="margin-top: 10px; background-color: #059669;">Imprimir / Guardar en PDF</button>
+  </div>
+
+  <!-- Contenedor donde se generan las tarjetas -->
+  <div class="cards-preview" id="cardsContainer"></div>
+
+  <script>
+    function procesarDatos() {
+      const fileInput = document.getElementById('csvFileInput');
+      const eventTitle = document.getElementById('titleInput').value.trim() || 'CITA CON DIOS';
+      const container = document.getElementById('cardsContainer');
+
+      if (!fileInput.files.length) {
+        alert('Por favor, selecciona un archivo CSV o Excel.');
+        return;
+      }
+
+      const file = fileInput.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        let jsonRows = XLSX.utils.sheet_to_json(worksheet);
+
+        // Ordenar datos alfabéticamente por SILLA
+        jsonRows.sort((a, b) => {
+          const sillaA = (a.SILLA || '').toString().toUpperCase();
+          const sillaB = (b.SILLA || '').toString().toUpperCase();
+          return sillaA.localeCompare(sillaB, undefined, {numeric: true, sensitivity: 'base'});
+        });
+
+        // Limpiar contenedor
+        container.innerHTML = '';
+
+        // Generar HTML para cada participante
+        jsonRows.forEach(row => {
+          const silla = row.SILLA || row.Silla || '';
+          const pNombre = row['Primer nombre'] || row.Primer_nombre || '';
+          const sNombre = row['Segundo nombre'] || row.Segundo_nombre || '';
+          const pApellido = row['Primer Apellido'] || row.Primer_Apellido || '';
+          const sApellido = row['Segundo Apellido'] || row.Segundo_apellido || '';
+          const fotoUrl = row.Foto || row.foto || '';
+
+          const nombreCompleto = `${pNombre} ${sNombre} ${pApellido} ${sApellido}`.replace(/\s+/g, ' ').trim();
+
+          const cardHtml = `
+            <div class="passport-card">
+              <div class="top-header">
+                <div class="event-title">${eventTitle}</div>
+                <div class="seat-badge">${silla}</div>
+              </div>
+              <div class="photo-box">
+                <img src="${fotoUrl}" alt="Foto de ${nombreCompleto}" onerror="this.src='https://via.placeholder.com/150?text=Sin+Foto'">
+              </div>
+              <div class="participant-name">${nombreCompleto}</div>
+            </div>
+          `;
+          container.innerHTML += cardHtml;
+        });
+
+        alert(`¡Se procesaron exitosamente ${jsonRows.length} pasaportes! Presiona 'Imprimir / Guardar en PDF'.`);
+      };
+
+      reader.readAsArrayBuffer(file);
+    }
+  </script>
+</body>
+</html>
