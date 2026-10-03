@@ -2,63 +2,180 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Generador de Pasaportes 7x9 cm - Cita con Dios</title>
-  <!-- Librería para leer archivos Excel / CSV fácilmente -->
+  <title>Impresión de Pasaportes - 8 por Hoja Carta (7x9 cm)</title>
+  <!-- Librería SheetJS para leer Excel/CSV -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
-    /* Estilos para la pantalla de control */
+    /* ==========================================
+       ESTILOS PARA PANTALLA / PANEL DE CONTROL
+       ========================================== */
     @media screen {
       body {
-        font-family: Arial, sans-serif;
-        background-color: #f3f4f6;
-        padding: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f1f5f9;
         margin: 0;
+        padding: 20px;
+        color: #334155;
       }
       .panel-control {
-        max-width: 600px;
+        max-width: 650px;
         margin: 0 auto 30px auto;
         background: #ffffff;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        margin-top: 0;
+        color: #1e3a8a;
       }
       .form-group {
-        margin-bottom: 15px;
+        margin-bottom: 18px;
       }
       label {
         display: block;
-        font-weight: bold;
-        margin-bottom: 5px;
+        font-weight: 600;
+        margin-bottom: 6px;
       }
       input[type="text"], input[type="file"] {
         width: 100%;
-        padding: 8px;
+        padding: 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
         box-sizing: border-box;
       }
-      button {
-        background-color: #1e3a8a;
-        color: white;
+      .btn {
         border: none;
-        padding: 10px 15px;
-        font-size: 14px;
-        border-radius: 4px;
+        padding: 12px 20px;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 6px;
         cursor: pointer;
         width: 100%;
+        transition: background 0.2s;
       }
-      button:hover {
+      .btn-primary {
+        background-color: #1e3a8a;
+        color: white;
+      }
+      .btn-primary:hover {
         background-color: #1d4ed8;
       }
-      .cards-preview {
+      .btn-success {
+        background-color: #059669;
+        color: white;
+        margin-top: 10px;
+      }
+      .btn-success:hover {
+        background-color: #10b981;
+      }
+      .preview-container {
         display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        justify-content: center;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
       }
     }
 
-    /* Estilos para la impresión / PDF (7 cm x 9 cm) */
+    /* ==========================================
+       ESTILOS GENERALES Y MAQUETACIÓN PÁGINA CARTA
+       ========================================== */
+    * {
+      box-sizing: border-box;
+    }
+
+    /* Tamaño Carta Horizontal: 27.94 cm x 21.59 cm */
+    .sheet-page {
+      width: 27.94cm;
+      height: 21.59cm;
+      padding: 1.2cm 1cm;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+      page-break-after: always;
+      display: grid;
+      grid-template-columns: repeat(4, 6.5cm); /* 4 columnas de 6.5 cm */
+      grid-template-rows: repeat(2, 9cm);       /* 2 filas de 9 cm */
+      gap: 0.2cm 0.4cm;                          /* Espaciado para guías de corte */
+      justify-content: center;
+      align-content: center;
+    }
+
+    /* Estructura individual de cada Pasaporte (7 cm x 9 cm) */
+    .passport-card {
+      width: 6.5cm;  /* Ajustado ligeramente para margen seguro dentro de la grilla de 4 */
+      height: 9cm;
+      padding: 0.25cm;
+      border: 1px dashed #cbd5e1; /* Línea de guía para recorte */
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+    }
+
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      height: 0.7cm;
+    }
+
+    .event-title {
+      font-size: 8pt;
+      font-weight: bold;
+      color: #1e3a8a;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .seat-badge {
+      background-color: #1e3a8a;
+      color: #ffffff;
+      font-size: 10pt;
+      font-weight: bold;
+      padding: 1px 6px;
+      border-radius: 4px;
+      text-align: center;
+      min-width: 1.1cm;
+    }
+
+    .photo-box {
+      width: 5.8cm;
+      height: 5.4cm;
+      margin: 0.1cm 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 4px;
+      background-color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .photo-box img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain; /* Foto completa sin recortar ni deformar */
+    }
+
+    .participant-name {
+      text-align: center;
+      font-size: 8.5pt;
+      font-weight: bold;
+      color: #0f172a;
+      text-transform: uppercase;
+      line-height: 1.15;
+      width: 100%;
+    }
+
+    /* ==========================================
+       ESTILOS EXCLUSIVOS PARA IMPRESIÓN (PDF)
+       ========================================== */
     @page {
-      size: 7cm 9cm;
+      size: letter landscape; /* Hoja Carta Horizontal */
       margin: 0;
     }
 
@@ -67,94 +184,23 @@
         display: none !important;
       }
       body {
-        background-color: white;
+        background: transparent;
         margin: 0;
         padding: 0;
       }
-      .cards-preview {
-        display: block;
-      }
-      .passport-card {
+      .sheet-page {
+        box-shadow: none;
+        margin: 0;
         page-break-after: always;
-        border: none !important;
-        box-shadow: none !important;
       }
-    }
-
-    /* Diseño individual del Pasaporte (7x9 cm) */
-    .passport-card {
-      width: 7cm;
-      height: 9cm;
-      box-sizing: border-box;
-      padding: 0.3cm;
-      background: white;
-      border: 1px dashed #cccccc;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      position: relative;
-    }
-
-    .top-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      height: 0.8cm;
-    }
-
-    .event-title {
-      font-size: 8.5pt;
-      font-weight: bold;
-      color: #1e3a8a;
-      text-transform: uppercase;
-    }
-
-    .seat-badge {
-      background-color: #1e3a8a;
-      color: white;
-      font-size: 10pt;
-      font-weight: bold;
-      padding: 2px 6px;
-      border-radius: 4px;
-      min-width: 1.2cm;
-      text-align: center;
-    }
-
-    .photo-box {
-      width: 6.4cm;
-      height: 5.4cm;
-      margin: 0 auto;
-      border: 1px solid #e2e8f0;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: hidden;
-      background-color: #f8fafc;
-    }
-
-    .photo-box img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-
-    .participant-name {
-      text-align: center;
-      font-size: 9.5pt;
-      font-weight: bold;
-      color: #0f172a;
-      text-transform: uppercase;
-      line-height: 1.2;
-      margin-top: 2px;
     }
   </style>
 </head>
 <body>
 
-  <!-- Panel de control interactivo -->
+  <!-- Panel de Control -->
   <div class="panel-control">
-    <h2>Generador de Pasaportes de Retiro</h2>
+    <h2>Generador de Pasaportes (8 por Hoja Carta)</h2>
     
     <div class="form-group">
       <label for="titleInput">Título del Evento:</label>
@@ -162,25 +208,25 @@
     </div>
 
     <div class="form-group">
-      <label for="csvFileInput">Cargar Archivo de Datos (CSV / Excel):</label>
+      <label for="csvFileInput">Cargar Archivo de Datos (CSV o Excel):</label>
       <input type="file" id="csvFileInput" accept=".csv, .xlsx, .xls">
     </div>
 
-    <button onclick="procesarDatos()">Generar Pasaportes</button>
-    <button onclick="window.print()" style="margin-top: 10px; background-color: #059669;">Imprimir / Guardar en PDF</button>
+    <button class="btn btn-primary" onclick="procesarDatos()">1. Generar Hoja con Pasaportes</button>
+    <button class="btn btn-success" onclick="window.print()">2. Imprimir / Descargar en PDF</button>
   </div>
 
-  <!-- Contenedor donde se generan las tarjetas -->
-  <div class="cards-preview" id="cardsContainer"></div>
+  <!-- Vista previa e impresión de Hojas Carta -->
+  <div class="preview-container" id="sheetsContainer"></div>
 
   <script>
     function procesarDatos() {
       const fileInput = document.getElementById('csvFileInput');
       const eventTitle = document.getElementById('titleInput').value.trim() || 'CITA CON DIOS';
-      const container = document.getElementById('cardsContainer');
+      const container = document.getElementById('sheetsContainer');
 
       if (!fileInput.files.length) {
-        alert('Por favor, selecciona un archivo CSV o Excel.');
+        alert('Por favor, selecciona un archivo de datos (Excel o CSV).');
         return;
       }
 
@@ -194,18 +240,24 @@
         const worksheet = workbook.Sheets[firstSheetName];
         let jsonRows = XLSX.utils.sheet_to_json(worksheet);
 
-        // Ordenar datos alfabéticamente por SILLA
+        // 1. Ordenar datos alfabéticamente por columna SILLA
         jsonRows.sort((a, b) => {
-          const sillaA = (a.SILLA || '').toString().toUpperCase();
-          const sillaB = (b.SILLA || '').toString().toUpperCase();
+          const sillaA = (a.SILLA || a.Silla || '').toString().toUpperCase();
+          const sillaB = (b.SILLA || b.Silla || '').toString().toUpperCase();
           return sillaA.localeCompare(sillaB, undefined, {numeric: true, sensitivity: 'base'});
         });
 
-        // Limpiar contenedor
         container.innerHTML = '';
+        let currentSheet = null;
 
-        // Generar HTML para cada participante
-        jsonRows.forEach(row => {
+        // 2. Agrupar en hojas Carta (máximo 8 pasaportes por hoja)
+        jsonRows.forEach((row, index) => {
+          if (index % 8 === 0) {
+            currentSheet = document.createElement('div');
+            currentSheet.className = 'sheet-page';
+            container.appendChild(currentSheet);
+          }
+
           const silla = row.SILLA || row.Silla || '';
           const pNombre = row['Primer nombre'] || row.Primer_nombre || '';
           const sNombre = row['Segundo nombre'] || row.Segundo_nombre || '';
@@ -227,10 +279,10 @@
               <div class="participant-name">${nombreCompleto}</div>
             </div>
           `;
-          container.innerHTML += cardHtml;
+          currentSheet.innerHTML += cardHtml;
         });
 
-        alert(`¡Se procesaron exitosamente ${jsonRows.length} pasaportes! Presiona 'Imprimir / Guardar en PDF'.`);
+        alert(`¡Se crearon ${Math.ceil(jsonRows.length / 8)} hoja(s) Carta con un total de ${jsonRows.length} pasaportes! Haz clic en 'Imprimir / Descargar en PDF'.`);
       };
 
       reader.readAsArrayBuffer(file);
